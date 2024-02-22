@@ -1,0 +1,108 @@
+.SignUp {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 97vh;
+
+    .container {
+        width: 400px;
+        height: fit-content;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+        .form {
+            display: flex;
+            flex-direction: column;
+
+            .row {
+                justify-content: center;
+                align-items: center;
+                padding-left: 40%;
+
+                .UserIcon {
+                    justify-content: center;
+                    align-items: center;
+                    width: max-content;
+                    transform: translate(-2%, 0%);
+                    border-radius: 50%;
+                    background-color: #fff;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+                    padding: 10px;
+
+                    .icon {
+                        font-size: 3rem;
+                    }
+                }
+            }
+
+
+
+            .formGroup {
+                margin-bottom: 15px;
+
+                label {
+                    font-size: 16px;
+                    color: #333;
+                    margin-bottom: 5px;
+                    width: 400px;
+                }
+
+                input {
+                    border: none;
+                    border-bottom: 1px solid #ccc;
+                    padding: 8px;
+                    font-size: 16px;
+                    margin-top: 5px;
+                    width: 370px;
+                    font-family: "Campton";
+                    border-radius: .5rem;
+                }
+
+                .login {
+                    display: flex;
+                    padding-top: .5rem;
+
+                    .navLink {
+                        padding-left: .7rem;
+                        text-decoration: none;
+                        color: #2980b9;
+                        align-items: center;
+                        justify-content: center;
+                        height: fit-content;
+
+                        :active {
+                            color: #8CB7F5;
+                        }
+                    }
+                }
+
+            }
+
+            button {
+                background-color: #3498db;
+                color: #fff;
+                padding: 10px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+                margin-top: 10px;
+
+                :hover {
+                    background-color: #2980b9;
+                }
+            }
+        }
+    }
+}
+
+.error {
+    font-size: 14px;
+    color: red;
+}
+
+.forgotPassword {
+    cursor: pointer;
+    color: #2980b9;
+}
