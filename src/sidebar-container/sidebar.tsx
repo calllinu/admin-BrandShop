@@ -1,13 +1,17 @@
 import styles from './sidebar.module.scss';
 import { Col, Flex, Row } from "antd";
-import { DashboardOutlined, ShoppingOutlined, EnvironmentOutlined } from "@ant-design/icons";
+import { Link } from "react-router-dom";
+import { DashboardOutlined, ShoppingOutlined, EnvironmentOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+
 
 function Sidebar() {
     const collections: { label: string; icon: JSX.Element }[] = [
         { label: "Dashboard", icon: <DashboardOutlined /> },
+        { label: "Orders", icon: <ShoppingCartOutlined /> },
         { label: "Products", icon: <ShoppingOutlined /> },
         { label: "Locations", icon: <EnvironmentOutlined /> },
     ];
+    
 
     return (
         <>
@@ -25,7 +29,8 @@ function Sidebar() {
                     </Row>
                     <Col className={styles.items}>
                         {collections.map(({ label, icon }, index) => (
-                            <Row key={index} className={styles.rows}>
+                            <Link key={index} to={`/${label.toLowerCase()}`}>
+                            <Row className={styles.rows}>
                                 <Flex>
                                     <Col className={styles.icon}>
                                         {icon}
@@ -35,6 +40,7 @@ function Sidebar() {
                                     </Col>
                                 </Flex>
                             </Row>
+                            </Link>
                         ))}
                     </Col>
                 </Col>

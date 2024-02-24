@@ -5,7 +5,7 @@ import { UserOutlined } from '@ant-design/icons';
 import { auth } from "../../firebaseConfig/firebaseConfig";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from 'react-router-dom';
-import { useState} from "react";
+import { useState } from "react";
 import ForgotPasswordModal from "../forgot-password/ForgetPassword";
 import { getFirestore, collection, getDoc, doc } from "firebase/firestore";
 
@@ -56,8 +56,6 @@ function Login() {
       const userDoc = await getDoc(doc(usersCollection, user.uid));
 
       if(userDoc.exists() && userDoc.data().isAdmin){
-        navigate('/admin');
-      } else {
         navigate('/');
       }
 
