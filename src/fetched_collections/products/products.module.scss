@@ -1,0 +1,179 @@
+.main {
+    .title {
+        font-size: 1.4rem;
+        text-shadow: 3px 3px 3px rgba(78, 78, 78, 0.2);
+    }
+
+    .addButton {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .block {
+        padding-top: 2rem;
+
+        .columnDescriptions {
+            display: flex;
+            font-size: 1rem;
+            font-weight: bold;
+            text-shadow: 3px 3px 3px rgba(78, 78, 78, 0.2);
+            width: fit-content;
+        }
+
+        .spinnerContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            width: 100%;
+        }
+
+        .productRow {
+            border-radius: .3rem;
+            padding: .7rem;
+            cursor: pointer;
+
+            .discount {
+                display: flex;
+                padding-left: 1.4rem;
+            }
+
+            .icon {
+                padding-left: 1.1rem;
+            }
+        }
+
+        .oddRow {
+            background-color: #f0f0f0;
+        }
+
+        .partialId {
+            display: flex;
+            position: relative;
+            overflow: hidden;
+
+            .visiblePart {
+                opacity: 0.9;
+            }
+
+            .partialVisiblePart {
+                opacity: 0.6;
+            }
+
+            .partialVisiblePartSecond {
+                opacity: 0.3;
+            }
+
+            .invisiblePart {
+                opacity: 0;
+            }
+        }
+    }
+}
+
+.title {
+    font-size: 1.4rem;
+    text-shadow: 3px 3px 3px rgba(78, 78, 78, 0.2);
+}
+
+.addButton {
+    display: flex;
+    justify-content: flex-end;
+}
+
+
+input[type="text"],
+input[type="number"] {
+    border: none;
+    border-bottom: 1px solid #656363;
+    padding: 8px;
+    font-size: 14px;
+    margin-top: 5px;
+    width: 190px;
+    font-family: "Campton";
+    border-radius: .5rem;
+    margin-right: 1rem;
+}
+
+textarea {
+    border-radius: .5rem;
+    width: 100%;
+    padding: .5rem;
+}
+
+select {
+    padding: 8px;
+    border-radius: .5rem;
+    width: 205px;
+}
+
+input[type="file"] {
+    border-radius: .2rem;
+    border: none;
+}
+
+.error {
+    color: red;
+}
+
+.block {
+    padding-top: 2rem;
+
+    .columnDescriptions {
+        display: flex;
+        font-size: 1rem;
+        font-weight: bold;
+        text-shadow: 3px 3px 3px rgba(78, 78, 78, 0.2);
+        width: fit-content;
+    }
+
+    .spinnerContainer {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        width: 100%;
+    }
+
+    .productRow {
+        border-radius: .3rem;
+        padding: .7rem;
+        cursor: pointer;
+
+        .discount {
+            display: flex;
+            padding-left: 1.4rem;
+        }
+
+        .icon {
+            padding-left: 1.1rem;
+        }
+    }
+
+    .oddRow {
+        background-color: #f0f0f0;
+    }
+
+    .partialId {
+        display: flex;
+        position: relative;
+        overflow: hidden;
+
+        .visiblePart {
+            opacity: 0.9;
+        }
+
+        .partialVisiblePart {
+            opacity: 0.6;
+        }
+
+        .partialVisiblePartSecond {
+            opacity: 0.3;
+        }
+
+        .invisiblePart {
+            opacity: 0;
+        }
+    }
+
+}

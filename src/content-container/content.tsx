@@ -11,12 +11,12 @@ function Content() {
   return (
     <>
       <Col span={20} className={styles.rightContainer}>
-      <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/locations" element={<Locations />} />
-          <Route path="/orders" element={<Orders />} />
-        </Routes>
+        <Routes>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/locations" element={<Locations />} />
+            <Route path="/orders" element={<Orders />} />
+          </Routes>
       </Col>
     </>
   );
