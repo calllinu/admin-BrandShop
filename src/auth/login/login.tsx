@@ -56,7 +56,7 @@ function Login() {
       const userDoc = await getDoc(doc(usersCollection, user.uid));
 
       if(userDoc.exists() && userDoc.data().isAdmin){
-        navigate('/');
+        navigate('/dashboard');
       }
 
     } catch (error) {
