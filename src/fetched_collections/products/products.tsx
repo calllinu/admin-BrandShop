@@ -1,13 +1,13 @@
 import { Row, Col, Button, Modal, Spin } from 'antd';
 import styles from './products.module.scss';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { storage } from './../../firebaseConfig/firebaseConfig';
-import { getDocs, collection, query, addDoc } from 'firebase/firestore';
+import { getDocs, collection, query, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { database } from './../../firebaseConfig/firebaseConfig'; 
-import { CategoryData, Products } from './../../interfaces/interfaces';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { useFormik } from 'formik';
+import { CategoryData, ProductInterface, Products } from './../../interfaces/interfaces';
+import { getDownloadURL, ref, uploadBytes, deleteObject } from 'firebase/storage';
+import { Formik, Field, Form, ErrorMessage, FormikProps } from 'formik';
 import * as Yup from 'yup';
 
 function Products() {
@@ -17,8 +17,12 @@ function Products() {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [products, setProducts] = useState<Products[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [deleteProductLoading, setLoadingDeleteProduct] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
   const collectionCat = collection(database, "categories");
   const collectionProducts = collection(database, "products");
+  const formikRef = useRef<FormikProps<ProductInterface> | null>(null);
 
   const fetchCategories = async () => {
     try {
@@ -88,88 +92,68 @@ function Products() {
       console.error('Error fetching products:', error);
     }
   };
+
+  const deleteProduct = async (productId: string, photoURL: string) => {
+    try {
+      setLoadingDeleteProduct(true);
+      await deleteDoc(doc(collectionProducts, productId));
+  
+      const storageRef = ref(storage, photoURL);
+      await deleteObject(storageRef);
+  
+      fetchProducts();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
+  };
+
+  const showModalConfirmDelete = (product: Products) => {
+    setSelectedProduct(product);
+    setIsModalVisible(true);
+  };
+
+  const handleOk = async () => {
+    if (selectedProduct) {
+      await deleteProduct(selectedProduct.id, selectedProduct.photo);
+      setLoadingDeleteProduct(false);
+      setIsModalVisible(false);
+    }
+  };
+
+  const handleCancelConfirmDelete = () => {
+    setIsModalVisible(false);
+  };
+  
   
   useEffect(() => {
     fetchCategories();
     fetchProducts();
-  }, []);
-  
+  }, []);  
       
-
-  const formik = useFormik({
-    initialValues: {
-      name: "",
-      discount: "",
-      series: "",
-      color: "",
-      size: "",
-      price: "",
-      categoryID: "",
-      photo: null as File | null,
-      description: "",
-    },
-    validationSchema: Yup.object({
-      name: Yup.string().required("Required"),
-      discount: Yup.number().required("Required"),
-      series: Yup.string().required("Required"),
-      color: Yup.string().required("Required"),
-      size: Yup.string().required("Required"),
-      price: Yup.string().required("Required"),
-      categoryID: Yup.string().required("Required"),
-      photo: Yup.mixed().required("Required"),
-      description: Yup.string().required("Required"),
-    }),
-
-    onSubmit: async (values ) => {
-      setLoading(true);
-    
-      try {
-        if (values.photo) {
-          const photoPath = `/watches/${values.photo.name}`;
-          const storageRef = ref(storage, photoPath);
-          await uploadBytes(storageRef, values.photo);
-          const photoURL = await getDownloadURL(storageRef);
-    
-          await addDoc(collection(database, 'products'), {
-            name: values.name,
-            discount: Number(values.discount),
-            series: values.series,
-            color: values.color,
-            size: values.size,
-            price: values.price,
-            categoryID: values.categoryID,
-            photo: photoURL, 
-            description: values.description,
-          });
-    
-          fetchProducts();
-    
-          formik.resetForm();
-          setOpen(false);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error adding product:', error);
-        setLoading(false);
-      }
-    }
-
-    
-  });
 
   const showModal = () => {
     setOpen(true);
   }
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     setOpen(false);
-    formik.resetForm();
+    if (formikRef.current) {
+      formikRef.current.resetForm();
+    }
   }
 
-  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    e.preventDefault();
-    formik.handleSubmit();  
-  };  
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+
+      if (formikRef.current) {
+        await formikRef.current.submitForm();
+      }
+
+    } catch (error) {
+      console.error('Error adding product:', error);
+    }
+  };
 
   const columnDescriptions = [
     { label: 'Product ID', span: 3 },
@@ -182,7 +166,7 @@ function Products() {
     { label: 'Price', span: 2 },
     { label: 'Edit', span: 1 },
     { label: 'Delete', span: 2 },
-  ];
+  ];  
  
   return (
     <>
@@ -197,17 +181,86 @@ function Products() {
           </Button>
           <Modal
             open={open}
-            onOk={handleSubmit}
             onCancel={handleCancel}
             footer={[
+            <div key="actions">
+              <Button key="cancel" onClick={handleCancel}>
+                Cancel
+              </Button>
               <Button key="submit" type='primary' loading={loading} onClick={handleSubmit}>
                 Add Product
               </Button>
+            </div>
+              
             ]}
             className={styles.modal}
             >
               <Row className={styles.form}>
-                <form onSubmit={formik.handleSubmit}>
+                <Formik 
+                    innerRef={(formik) => (formikRef.current = formik)}
+                    initialValues={{ 
+                      name: "",
+                      discount: "",
+                      series: "",
+                      color: "",
+                      size: "",
+                      price: "",
+                      categoryID: "",
+                      photo: null as File | null,
+                      description: "" 
+                    }}
+
+                    onSubmit={
+                      async (values, { resetForm }) => {
+                        setLoading(true);
+                      
+                        try {
+                          if (values.photo) {
+                            const photoPath = `/watches/${values.photo.name}`;
+                            const storageRef = ref(storage, photoPath);
+                            await uploadBytes(storageRef, values.photo);
+                            const photoURL = await getDownloadURL(storageRef);
+
+                            await addDoc(collection(database, 'products'), {
+                              name: values.name,
+                              discount: Number(values.discount),
+                              series: values.series,
+                              color: values.color,
+                              size: values.size,
+                              price: values.price,
+                              categoryID: values.categoryID,
+                              photo: photoURL, 
+                              description: values.description,
+                            });
+                            
+                            resetForm();
+                            fetchProducts();
+                            setOpen(false);
+                            setLoading(false);
+                          }
+                        } catch (error) {
+                          console.error('Error adding product:', error);
+                          setLoading(false);
+                        }
+                      }
+                    }
+
+                    validationSchema={
+                      Yup.object({
+                          name: Yup.string().required("Required"),
+                          discount: Yup.number().required("Required"),
+                          series: Yup.string().required("Required"),
+                          color: Yup.string().required("Required"),
+                          size: Yup.string().required("Required"),
+                          price: Yup.string().required("Required"),
+                          categoryID: Yup.string().required("Required"),
+                          photo: Yup.mixed().required("Required"),
+                          description: Yup.string().required("Required"),
+                      })}
+                    >
+
+              {({ values, handleChange, handleBlur, setFieldValue }) => (
+                <Form>
                   <Row>
                     <Col span={12}>Category</Col>  
                     <Col span={12}>Name</Col>
@@ -216,9 +269,9 @@ function Products() {
                     <Col span={12}>
                     <select
                       name="categoryID"
-                      value={formik.values.categoryID}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
+                      value={values.categoryID}
+                      onBlur={handleBlur}
+                      onChange={handleChange}
                     >
                       <option value="" label="Select a subcategory" />
                       {categories
@@ -227,21 +280,17 @@ function Products() {
                           <option key={subcat.id} value={subcat.id} label={subcat.name} className={styles.option}/>
                         ))}
                     </select>
-                    {formik.touched.categoryID? (
-                      <div className={styles.error}>{formik.errors.categoryID}</div>
-                    ) : null}
+                    <ErrorMessage className={styles.error} name='categoryID' component="div" />
                     </Col>
                     <Col span={12}>
-                      <input
+                      <Field
                         type="text"
                         name="name"
-                        value={formik.values.name}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
+                        value={values.name}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                       />
-                      {formik.touched.name? (
-                        <Row className={styles.error}>{formik.errors.name}</Row>
-                      ) : null}
+                      <ErrorMessage className={styles.error} name='name' component="div" />
                     </Col>
                   </Row>
 
@@ -251,28 +300,24 @@ function Products() {
                   </Row>
                   <Row>
                     <Col span={12}>
-                      <input
+                      <Field
                         type="text"
                         name="series"
-                        value={formik.values.series}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
+                        value={values.series}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                       />
-                      {formik.touched.series? (
-                        <div className={styles.error}>{formik.errors.series}</div>
-                      ) : null}
+                      <ErrorMessage className={styles.error} name='series' component="div" />
                     </Col>
                     <Col span={12}>
-                      <input
+                      <Field
                         type="number"
                         name="discount"
-                        value={formik.values.discount}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
+                        value={values.discount}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                       />
-                      {formik.touched.discount? (
-                        <div className={styles.error}>{formik.errors.discount}</div>
-                      ) : null}
+                      <ErrorMessage className={styles.error} name='discount' component="div" />
                     </Col>
                   </Row>      
 
@@ -282,30 +327,24 @@ function Products() {
                   </Row>
                   <Row>
                     <Col span={12}>
-                      <input
+                      <Field
                         type="text"
                         name="size"
-                        value={formik.values.size}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-              
+                        value={values.size}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                       />
-                      {formik.touched.size? (
-                        <div className={styles.error}>{formik.errors.size}</div>
-                      ) : null}
+                      <ErrorMessage className={styles.error} name='size' component="div" />
                     </Col>
                     <Col span={12}>
-                      <input
+                      <Field
                         type="text"
                         name="color"
-                        value={formik.values.color}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-          
+                        value={values.color}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                       />
-                      {formik.touched.color? (
-                        <div className={styles.error}>{formik.errors.color}</div>
-                      ) : null}
+                      <ErrorMessage className={styles.error} name='color' component="div" />
                     </Col>
                   </Row>   
 
@@ -314,17 +353,14 @@ function Products() {
                     </Row>
                     <Row>
                       <Col span={12}>
-                        <input
+                        <Field
                           type="text"
-                          name="price"
-                          value={formik.values.price}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                  
+                          name="price"  
+                          value={values.price}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
                         />
-                        {formik.touched.price? (
-                          <div className={styles.error}>{formik.errors.price}</div>
-                        ) : null}
+                      <ErrorMessage className={styles.error} name='price' component="div" />
                       </Col>
                       </Row>
                       <Row>
@@ -336,14 +372,12 @@ function Products() {
                         <textarea
                           rows={5}
                           name="description"
-                          value={formik.values.description}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
                           className={styles.textarea}
+                          value={values.description}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
                         />
-                        {formik.touched.description? (
-                          <div className={styles.error}>{formik.errors.description}</div>
-                        ) : null}
+                        <ErrorMessage className={styles.error} name='description' component="div" />
                       </Col>
                     </Row>      
                     <Row>
@@ -351,23 +385,42 @@ function Products() {
                           Photo
                       </Col>
                       <Col span={24}>
-                        <input
+                      <input
                             type="file"
                             name="photo"
-                            onChange={(e) => formik.setFieldValue("photo", e.currentTarget.files ? e.currentTarget.files[0] : null)}
-                            onBlur={formik.handleBlur}
+                            onChange={(e) => setFieldValue("photo", e.currentTarget.files ? e.currentTarget.files[0] : null)}
+                            onBlur={handleBlur}
                             accept='.jpg, .jpeg, .png'
                         />
                       </Col>
                       <Col span={24}>
-                        {formik.touched.photo? (
-                            <div className={styles.error}>{formik.errors.photo}</div>
-                          ) : null}
+                      <ErrorMessage className={styles.error} name='photo' component="div" />
                       </Col>
-                    </Row>         
-                  </form>
+                    </Row>  
+                  </Form>
+                   )}
+                  </Formik>
               </Row>
-            </Modal>
+          </Modal>
+          <Modal
+            title="Confirm Delete"
+            open={isModalVisible}
+            onCancel={handleCancelConfirmDelete}
+            footer={[
+              <Col key="footer">
+                <Button key="delete" loading={loading} onClick={handleCancelConfirmDelete}>
+                  Cancel
+                </Button>
+                <Button key="submit" type='primary' loading={deleteProductLoading} onClick={handleOk}>
+                  Delete Product
+                </Button>
+              </Col>
+              
+            ]}
+            >
+            Are you sure for deleting ?
+          </Modal>
+            
         </Col>
       </Row>
       <div className={styles.block}>
@@ -402,8 +455,9 @@ function Products() {
                 <Col span={3} className={styles.partialId}>
                   <span className={styles.visiblePart}>{product.id.slice(0, 3)}</span>
                   <span className={styles.partialVisiblePart}>{product.id.slice(3, 8)}</span>
-                  <span className={styles.partialVisiblePartSecond}>{product.id.slice(8, 12)}</span>
-                  <span className={styles.invisiblePart}>{product.id.slice(12)}</span>
+                  <span className={styles.partialVisiblePartSecond}>{product.id.slice(8, 11)}</span>
+                  <span className={styles.partialVisiblePartSecond}>...</span>
+                  <span className={styles.invisiblePart}>{product.id.slice(11)}</span>
                 </Col>
                 <Col span={3}>
                   {categoriesLoading ? (
@@ -423,7 +477,7 @@ function Products() {
                 <Col span={1} className={styles.icon}>
                   <EditOutlined />
                 </Col>
-                <Col span={2} className={styles.icon}>
+                <Col span={2} className={styles.icon} onClick={() => showModalConfirmDelete(product)}>
                   <DeleteOutlined />
                 </Col>
               </Row>

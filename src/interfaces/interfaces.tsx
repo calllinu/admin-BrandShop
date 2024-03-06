@@ -17,11 +17,23 @@ export interface Products {
   id: string;
   discount: number;
   series: string;
-  photo: File;
+  photo: string;
   color: string;
   price: string;
   size: string;
   categoryID: string;
+  description: string;
+}
+
+export interface ProductInterface {
+  name: string;
+  discount: string;
+  series: string;
+  color: string;
+  size: string;
+  price: string;
+  categoryID: string;
+  photo: File | null;
   description: string;
 }
 
