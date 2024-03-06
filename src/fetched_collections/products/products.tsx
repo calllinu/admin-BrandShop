@@ -14,6 +14,7 @@ function Products() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [products, setProducts] = useState<Products[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const collectionCat = collection(database, "categories");
@@ -46,6 +47,7 @@ function Products() {
       ) as CategoryData[];
   
       setCategories(categoryData);
+      setCategoriesLoading(false);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -179,7 +181,7 @@ function Products() {
     { label: 'Size', span: 3 },
     { label: 'Price', span: 2 },
     { label: 'Edit', span: 1 },
-    { label: 'Delete', span: 1 },
+    { label: 'Delete', span: 2 },
   ];
  
   return (
@@ -403,19 +405,25 @@ function Products() {
                   <span className={styles.partialVisiblePartSecond}>{product.id.slice(8, 12)}</span>
                   <span className={styles.invisiblePart}>{product.id.slice(12)}</span>
                 </Col>
-                <Col span={3}>{subcategoryName}</Col>
+                <Col span={3}>
+                  {categoriesLoading ? (
+                    <Spin size='small' className={styles.spin}/>
+                  ) : (
+                    subcategoryName
+                  )}
+                </Col>
                 <Col span={3}>{product.name}</Col>
                 <Col span={2}>{product.series}</Col>
                 <Col span={2} className={styles.discount}>
                   {product.discount}
                 </Col>
-                <Col span={3}>{product.color}</Col>
+                <Col span={3} className={styles.color}>{product.color}</Col>
                 <Col span={3}>{product.size}</Col>
                 <Col span={2}>{product.price}</Col>
                 <Col span={1} className={styles.icon}>
                   <EditOutlined />
                 </Col>
-                <Col span={1} className={styles.icon}>
+                <Col span={2} className={styles.icon}>
                   <DeleteOutlined />
                 </Col>
               </Row>
