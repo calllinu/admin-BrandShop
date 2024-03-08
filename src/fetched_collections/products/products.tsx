@@ -23,6 +23,7 @@ function Products() {
   const collectionCat = collection(database, "categories");
   const collectionProducts = collection(database, "products");
   const formikRef = useRef<FormikProps<ProductInterface> | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   const fetchCategories = async () => {
     try {
@@ -138,7 +139,8 @@ function Products() {
   const handleCancel = async () => {
     setOpen(false);
     if (formikRef.current) {
-      formikRef.current.resetForm();
+      await formikRef.current.resetForm();
+      setFormKey((prevKey) => prevKey + 1);
     }
   }
 
@@ -148,6 +150,7 @@ function Products() {
 
       if (formikRef.current) {
         await formikRef.current.submitForm();
+        setFormKey((prevKey) => prevKey + 1);
       }
 
     } catch (error) {
@@ -197,6 +200,7 @@ function Products() {
             >
               <Row className={styles.form}>
                 <Formik 
+                    key={formKey} 
                     innerRef={(formik) => (formikRef.current = formik)}
                     initialValues={{ 
                       name: "",
@@ -232,9 +236,9 @@ function Products() {
                               photo: photoURL, 
                               description: values.description,
                             });
-                            
-                            resetForm();
+
                             fetchProducts();
+                            resetForm();
                             setOpen(false);
                             setLoading(false);
                           }
@@ -267,7 +271,8 @@ function Products() {
                   </Row>
                   <Row>
                     <Col span={12}>
-                    <select
+                    <Field 
+                      as="select"
                       name="categoryID"
                       value={values.categoryID}
                       onBlur={handleBlur}
@@ -279,7 +284,7 @@ function Products() {
                         .map((subcat) => (
                           <option key={subcat.id} value={subcat.id} label={subcat.name} className={styles.option}/>
                         ))}
-                    </select>
+                    </Field>
                     <ErrorMessage className={styles.error} name='categoryID' component="div" />
                     </Col>
                     <Col span={12}>
@@ -386,11 +391,11 @@ function Products() {
                       </Col>
                       <Col span={24}>
                       <input
-                            type="file"
-                            name="photo"
-                            onChange={(e) => setFieldValue("photo", e.currentTarget.files ? e.currentTarget.files[0] : null)}
-                            onBlur={handleBlur}
-                            accept='.jpg, .jpeg, .png'
+                          type="file"
+                          name="photo"
+                          onChange={(e) => setFieldValue("photo", e.currentTarget.files ? e.currentTarget.files[0] : null)}
+                          onBlur={handleBlur}
+                          accept='.jpg, .jpeg, .png'
                         />
                       </Col>
                       <Col span={24}>
