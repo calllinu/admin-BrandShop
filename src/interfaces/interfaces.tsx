@@ -15,12 +15,13 @@ export interface Products {
   id: string;
   discount: number;
   series: string;
-  photo: string;
+  photos: string[];
   color: string;
   price: string;
   size: string;
   categoryID: string;
   description: string;
+  currency: string;
 }
 
 export interface ProductInterface {
@@ -31,6 +32,15 @@ export interface ProductInterface {
   size: string;
   price: string;
   categoryID: string;
-  photo: File | null;
+  photo: FileList | null;
   description: string;
+  currency: string;
+}
+
+export interface DataItem {
+  id: string;
+  image: string;
+  name: string;
+  value: string;
+  currency: string;
 }

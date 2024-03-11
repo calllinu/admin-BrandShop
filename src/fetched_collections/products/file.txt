@@ -1,14 +1,15 @@
 import { Row, Col, Button, Modal, Spin, Input, Select } from 'antd';
 import styles from './products.module.scss';
-import { PlusOutlined, EditOutlined, DeleteOutlined} from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useState, useEffect, useRef } from 'react';
 import { storage } from '../../firebaseConfig/firebaseConfig';
-import { getDocs, collection, query,  doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { getDocs, collection, query, deleteDoc, doc, addDoc } from 'firebase/firestore';
 import { database } from '../../firebaseConfig/firebaseConfig'; 
 import { CategoryData, ProductInterface, Products } from '../../interfaces/interfaces';
-import { getDownloadURL, ref, deleteObject, uploadBytes, list} from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytes, deleteObject } from 'firebase/storage';
 import { Formik, Field, Form, ErrorMessage, FormikProps } from 'formik';
 import * as Yup from 'yup';
+
 
 function Products() {
   const [loading, setLoading] = useState(false);
@@ -21,7 +22,7 @@ function Products() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
   const [editProduct, setEditProduct] = useState<Products[]>([]);
-  // const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [currency, setCurrency] = useState<string[] | null>(null);
   const allSubcategories = categories.flatMap((cat) => cat.subcategories ?? []);
   const [search, setSearch] = useState('');
@@ -112,16 +113,19 @@ function Products() {
     }
   }; 
 
-  const deleteProduct = async (productId: string) => {
+  const deleteProduct = async (productId: string, photos: string[] | string) => {
     try {
       setLoadingDeleteProduct(true);
-      await deleteDoc(doc(collectionProducts, productId));
   
-      const folderRef = ref(storage, `products/${productId}/`);
-      const files = await list(folderRef);
-      await Promise.all(files.items.map(async (fileRef) => {
-        await deleteObject(fileRef);
-      }));
+      await deleteDoc(doc(collectionProducts, productId));
+      const photoUrls = Array.isArray(photos) ? photos : [photos];
+  
+      const deletePhotoPromises = photoUrls.map(async (photoURL) => {
+        const storageRef = ref(storage, photoURL);
+        await deleteObject(storageRef);
+      });
+  
+      await Promise.all(deletePhotoPromises);
   
       fetchProducts();
     } catch (error) {
@@ -129,7 +133,8 @@ function Products() {
     } finally {
       setLoadingDeleteProduct(false);
     }
-  };  
+  };
+  
 
   const showModalConfirmDelete = (product: Products) => {
     setSelectedProduct(product);
@@ -138,7 +143,7 @@ function Products() {
 
   const handleOk = async () => {
     if (selectedProduct) {
-      await deleteProduct(selectedProduct.id);
+      await deleteProduct(selectedProduct.id, selectedProduct.photos);
       setLoadingDeleteProduct(false);
       setIsModalVisible(false);
     }
@@ -163,7 +168,7 @@ function Products() {
   
     if (selectedProduct) {
       setSelectedProduct(selectedProduct);
-      // setIsEditMode(true);
+      setIsEditMode(true);
       setOpen(true);
     }
   }; 
@@ -176,12 +181,8 @@ function Products() {
     }
   }
 
-  const handleSubmit = async () => {
-    if (formikRef.current) {
-      await formikRef.current.submitForm();
-      setFormKey((prevKey) => prevKey + 1);
-    }
-  }
+
+  
 
   const columnDescriptions = [
     { label: 'Product ID', span: 3 },
@@ -195,7 +196,7 @@ function Products() {
     { label: 'Edit', span: 1 },
     { label: 'Delete', span: 2 },
   ];  
-   
+ 
   return (
     <>
       <Row className={styles.main} gutter={[10,10]}>
@@ -215,7 +216,7 @@ function Products() {
                   <Button key="cancel" onClick={handleCancel}>
                     Cancel
                   </Button>
-                  <Button key="submit" type='primary' loading={loading} onClick={handleSubmit}>
+                  <Button key="submit" type='primary' loading={loading} >
                     Add Product
                   </Button>
                 </div>
@@ -227,65 +228,61 @@ function Products() {
                         key={formKey} 
                         innerRef={(formik) => (formikRef.current = formik)}
                         initialValues={{
-                          name:  "",
-                          discount:  "",
-                          series:  "",
-                          color:  "",
-                          size:  "",
-                          price: "",
-                          categoryID:  "",
-                          photo: null as FileList | null,
-                          currency : "",
-                          description: "",
+                          name: isEditMode ? selectedProduct?.name || "" : "",
+                          discount: isEditMode ? selectedProduct?.discount.toString() || "" : "",
+                          series: isEditMode ? selectedProduct?.series || "" : "",
+                          color: isEditMode ? selectedProduct?.color || "" : "",
+                          size: isEditMode ? selectedProduct?.size || "" : "",
+                          price: isEditMode ? selectedProduct?.price || "" : "",
+                          categoryID: isEditMode ? selectedProduct?.categoryID || "" : "",
+                          photos: null as File[] | null,
+                          currency : isEditMode ? selectedProduct?.currency || "" : "",
+                          description: isEditMode ? selectedProduct?.description || "" : "",
                         }}                        
 
-                        onSubmit={async (values, { resetForm }) => {
-                          setLoading(true);
-                          let photoURLs = [];
-                        
-                          try {
-                            if (values.photo && values.photo.length > 0) {
-                              // Generate a unique ID for the product document
-                              const productRef = doc(collection(database, 'products'));
-                              const productID = productRef.id;
-                        
-                              // Update the path to include the product ID
-                              photoURLs = await Promise.all(
-                                Array.from(values.photo).map(async (photo) => {
-                                  const photoPath = `/products/${productID}/${photo.name}`;
+                        onSubmit={
+                          async (values, {resetForm}) => {
+                            console.log('Formik onSubmit:', values);
+                            setLoading(true);
+                            try {                              
+                              const photoFiles: File[] = (values.photos as File[]) || [];
+                          
+                              if (photoFiles.length > 0) {
+                                const photoRefs = [];
+                          
+                                for (const file of photoFiles) {
+                                  const photoPath = `/${values.name}/${file.name.split('.').pop()}`;
                                   const storageRef = ref(storage, photoPath);
-                        
-                                  await uploadBytes(storageRef, photo);
-                                  const downloadURL = await getDownloadURL(storageRef);
-                                  return downloadURL;
-                                })
-                              );
-                        
-                              // Use the generated product ID as the document ID
-                              await setDoc(productRef, {
-                                name: values.name,
-                                discount: Number(values.discount),
-                                series: values.series,
-                                color: values.color,
-                                size: values.size,
-                                price: values.price,
-                                categoryID: values.categoryID,
-                                photos: photoURLs,
-                                description: values.description,
-                                currency: values.currency,
-                              });
-                        
-                              fetchProducts();
-                              resetForm();
-                              setOpen(false);
+                                  await uploadBytes(storageRef, file);
+                                  const photoURL = await getDownloadURL(storageRef);
+                                  photoRefs.push(photoURL);
+                                }
+                          
+                                await addDoc(collection(database, 'products'), {
+                                    name: values.name,
+                                    discount: Number(values.discount),
+                                    series: values.series,
+                                    color: values.color,
+                                    size: values.size,
+                                    price: values.price,
+                                    categoryID: values.categoryID,
+                                    photos: photoRefs,
+                                    description: values.description,
+                                    currency: values.currency,
+                                  });
+                                
+                          
+                                fetchProducts();
+                                resetForm();
+                                setOpen(false);
+                                setLoading(false);
+                              }
+                            } catch (error) {
+                              console.error('Error adding/updating product:', error);
                               setLoading(false);
                             }
-                          } catch (error) {
-                            console.error('Error adding product:', error);
-                            setLoading(false);
                           }
-                        }}
-                                  
+                        }    
 
                         validationSchema={
                           Yup.object({
@@ -302,7 +299,7 @@ function Products() {
                           })}
                         >
 
-                  {({ values, handleChange, handleBlur, setFieldValue}) => (
+                  {({ values, handleChange, handleBlur, setFieldValue }) => (
                     <Form>
                       <Row>
                         <Col span={12}>Category</Col>  
@@ -451,17 +448,31 @@ function Products() {
                               Photo
                           </Col>
                           <Col span={24}>
-                          <input
-                            type="file"
-                            name="photo"
-                            onChange={(e) => setFieldValue("photo", e.currentTarget.files ? e.currentTarget.files : null)}
-                            onBlur={handleBlur}
-                            accept='.jpg, .jpeg, .png'
-                            multiple
-                          />
+                            <input
+                              type="file"
+                              name="photos"
+                              onChange={(e) => {
+                                const files = e.currentTarget.files;
+
+                                if (files && files.length > 0) {
+                                  const selectedFiles = Array.from(files);
+                                  setFieldValue("photos", selectedFiles);
+                                } else {
+                                  setFieldValue("photos", null);
+                                }
+                              }}
+                              onBlur={handleBlur}
+                              accept=".jpg, .jpeg, .png"
+                              multiple 
+                            />
+                          </Col>
+
+                          <Col span={24}>
+                          <ErrorMessage className={styles.error} name='photo' component="div" />
                           </Col>
                           <Col span={24}>
-                            <ErrorMessage className={styles.error} name='photo' component="div" />
+                            <button type='submit'>submit</button>
+
                           </Col>
                         </Row>  
 

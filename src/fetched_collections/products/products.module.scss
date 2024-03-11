@@ -8,8 +8,14 @@
     justify-content: flex-end;
 }
 
+.subCategoryOption {
+    padding-right: .5rem;
+    display: flex;
+    justify-content: flex-end;
+}
 
-input[type="text"],
+
+input[type="text"].custom,
 input[type="number"] {
     border: none;
     border-bottom: 1px solid #656363;
@@ -99,6 +105,10 @@ input[type="file"] {
             display: flex;
             justify-content: center;
             align-items: center;
+
+            :hover {
+                color: rgb(0, 0, 255);
+            }
         }
     }
 

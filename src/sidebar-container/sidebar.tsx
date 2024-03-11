@@ -1,6 +1,6 @@
 import styles from './sidebar.module.scss';
 import { Col, Flex, Row } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   DashboardOutlined,
   ShoppingOutlined,
@@ -15,17 +15,20 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 
 function Sidebar() {
   const collections = [
-    { label: 'Dashboard', icon: <DashboardOutlined /> },
-    { label: 'Orders', icon: <ShoppingCartOutlined /> },
-    { label: 'Products', icon: <ShoppingOutlined /> },
-    { label: 'Locations', icon: <EnvironmentOutlined /> }
+    { label: 'Dashboard', icon: <DashboardOutlined />, path: '/dashboard' },
+    { label: 'Orders', icon: <ShoppingCartOutlined />, path: '/orders' },
+    { label: 'Products', icon: <ShoppingOutlined />, path: '/products' },
+    { label: 'Locations', icon: <EnvironmentOutlined />, path: '/locations' }
   ];
 
-  const [activeIndex, setActiveIndex] = useState(0);
+  const location = useLocation();
   const navigate = useNavigate();
 
+  const initialActiveIndex = collections.findIndex((item) => item.path === location.pathname);
+  const [activeIndex, setActiveIndex] = useState(initialActiveIndex !== -1 ? initialActiveIndex : 0);
+
   const handleActive = (index: number) => {
-    setActiveIndex((prevIndex) => (index === prevIndex ? -1 : index));
+    setActiveIndex(index);
   };
 
   const handleLogOut = async () => {
@@ -45,6 +48,12 @@ function Sidebar() {
     return () => unsubscribe();
   }, [navigate]);
 
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const activeItemIndex = collections.findIndex((item) => item.path === currentPath);
+    setActiveIndex(activeItemIndex !== -1 ? activeItemIndex : 0);
+  }, [location.pathname]);
+
   return (
     <Col span={4} className={styles.leftContainer}>
       <Col className={styles.firstColumn}>
@@ -58,8 +67,8 @@ function Sidebar() {
             </Flex>
           </Row>
           <Col className={styles.items}>
-            {collections.map(({ label, icon }, index) => (
-              <Link key={label} to={`/${label.toLowerCase()}`}>
+            {collections.map(({ label, icon, path }, index) => (
+              <Link key={label} to={path}>
                 <Row
                   key={label}
                   className={`${index === activeIndex ? styles.active : styles.rows}`}
