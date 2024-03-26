@@ -34,8 +34,16 @@ function App() {
     >
       <BrowserRouter>
         <Routes>
-          <Route path="*" element={isAuthenticated ? <Admin /> : <Navigate to="/login" />} />
+        <Route
+            path="/"
+            element={
+              isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+            }
+          />
           <Route path="/login" element={<Login />} />
+            {isAuthenticated && (
+              <Route path="/*" element={<Admin />} />
+            )}
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
